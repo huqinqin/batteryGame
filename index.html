@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        canvas{
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="cvs" width="900" height="900"></canvas>
+    <script>
+        var cvs = document.getElementById('cvs');
+        var ctx = cvs.getContext('2d');
+        var gGame = null;
+        var ememys = null;
+        var battery = null;
+        ememys = new Ememy(50,50);
+        function Battery() {
+            var _this = this;
+            this.targetX = 0;
+            this.targetY = 0;
+            this.x = 0;
+            this.y =  0;
+            this.rotateAfterAngle = 0;
+            this.bullet = [];
+            this.draw = function () {
+                ctx.clearRect(0,0,900,900);
+                ctx.beginPath();
+                ctx.fillStyle='red';
+                ctx.fillRect(0,cvs.height - 20,cvs.width,20);
+                //ctx.moveTo(cvs.width / 2,cvs.height - 20);
+                ctx.beginPath();
+                ctx.arc(cvs.width / 2,cvs.height - 20,100,0, Math.PI,true);
+                ctx.fillStyle = 'red';
+                ctx.fill();
+                _this.drawBattery();
+                ememys.update();
+            };
+            this.drawBattery = function () {
+                ctx.beginPath();
+                ctx.save();
+                ctx.translate(cvs.width / 2,cvs.height - 20);
+                _this.rotateAfterAngle = Math.atan2(_this.targetY - (cvs.height - 20),_this.targetX - cvs.width / 2);
+                var dtAngle = -Math.PI/2 - _this.rotateAfterAngle;
+                ctx.rotate(-dtAngle);
+                ctx.fillStyle = 'red';
+                ctx.fillRect(0,0,10,-200);
+                ctx.fill();
+                ctx.restore()
+            };
+            this.onclick = function (ev) {
+                ev = event || window.event;
+                _this.targetX = ev.pageX - cvs.offsetLeft;
+                _this.targetY = ev.pageY - cvs.offsetTop;
+                /*_this.draw();*/
+            };
+            this.fireBullet = function (ev) {
+                ev = event || window.event;
+                if(ev.keyCode == 38){
+                    _this.bullet.push(new Bullet(_this.rotateAfterAngle,(cvs.width / 2 + 5) + 200 * Math.cos(_this.rotateAfterAngle),(cvs.height - 20) + 200 * Math.sin(_this.rotateAfterAngle)));
+                }
+            };
+            document.onkeydown = _this.fireBullet;
+            cvs.onclick = _this.onclick;
+        }
+        function Ememy(){
+            var _this = this;
+            this.dead = false;
+            this.x = 50;
+            this.y = 50;
+            this.draw = function () {
+                ctx.beginPath();
+                ctx.arc(_this.x,_this.y,25,0, Math.PI/ 180 * 360);
+                ctx.stroke();
+            }
+            this.update = function () {
+                if(!_this.dead){
+                    _this.draw();
+                }
+                ++_this.x;
+                ++_this.y;
+            }
+        };
+        function Bullet (angle,x,y) {
+            var _this = this;
+            this.speed = 1;
+            this.frame = 0;
+            this.lastFrame = 0;
+            this.angle = angle;
+            this.x = x;
+            this.y = y;
+            this.draw = function () {
+                ctx.beginPath();
+                ctx.arc(_this.x,_this.y,10,0,Math.PI / 180 * 360);
+               // ctx.fillStyle = 'yellow';
+                ctx.stroke()
+            }
+            this.update = function () {
+                ++_this.frame;
+                var dt = _this.frame - _this.lastFrame;
+                var realDistance = _this.speed * dt;
+                _this.x += realDistance*Math.cos(_this.angle);
+                _this.y += realDistance*Math.sin(_this.angle);
+                _this.draw();
+                _this.lastFrame = _this.frame;
+                window.requestAnimationFrame(_this.update)
+            }
+        }
+        function Logic() {//这是一个总逻辑的入口，无论是炮台、敌人、子弹的每一帧位置在哪里等等，都在这里显示
+            var _this = this;
+            battery = new Battery();
+            this.update = function () {
+                battery.draw(); //每一帧都在画炮台、敌人、子弹
+                if(battery.bullet.length > 0){
+                    battery.bullet.forEach(function (val) {
+                        val.update();
+                    })
+                }
+            };
+            this.loop = function () {
+                _this.update();
+                window.requestAnimationFrame(_this.loop)
+            }
+        };
+        gGame = new Logic();
+        gGame.loop();
+    </script>
+</body>
+</html>
